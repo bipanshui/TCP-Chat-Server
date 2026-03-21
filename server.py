@@ -1,6 +1,7 @@
 import socket
 import datetime
 import sys
+import threading
 
 HOST="0.0.0.0"
 PORT=5000
@@ -29,7 +30,12 @@ def handle_client(client_socket : socket.socket , address : tuple):
     send_to(client_socket, "enter your name : ")
     
     try:
-        raw_name =  client_socket.recv(BUFFER_SIZE).decode().strip()  
+        raw_name =  client_socket.recv(BUFFER_SIZE).decode().strip()
+        
+        name = (raw_name[:20] or "Guest").replace(" ", "-")  
+        
+        log(f" '{name}' joined with {address}")
+        send_to(client_socket, f"\n you joined as {name}. say hello \n")
     except Exception:
         client_socket.close()
         return
@@ -51,8 +57,13 @@ def start_server():
      try:
          while True:
              client_socket, addr = server_socket.accept()
-             log(f"connected : {addr}")
              
+             thread = threading.Thread(
+                 target=handle_client,
+                 args=(client_socket, addr),
+                 daemon=True
+             )
+             thread.start()
              
      except KeyboardInterrupt:
          log(f"shutting down server....")
