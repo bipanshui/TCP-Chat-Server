@@ -9,6 +9,7 @@ BUFFER_SIZE=2048
 MAX_CLIENTS=50
 
 clients = {}
+clients_lock = threading.Lock()
 
 def timestamp():
     return datetime.datetime.now().strftime("%H:%M:%S")
@@ -22,6 +23,17 @@ def send_to(client_socket : socket.socket, message : str):
         client_socket.sendall(msg)
     except:
         pass    
+    
+def broadcast(message : str): 
+    with clients_lock:
+        reciepents = list(clients.keys())
+        for reciepent in reciepents:
+            send_to(reciepent, message)
+        
+def get_client_name(client_socket : socket.socket) -> str:
+    with clients_lock:
+        info = clients.get(client_socket)
+        return info["name"] if info else "Unknown"
 
 def handle_client(client_socket : socket.socket , address : tuple):
     log(f"a new client connected with: {address}")
@@ -68,7 +80,7 @@ def start_server():
      except KeyboardInterrupt:
          log(f"shutting down server....")
          log(f"server closed cleanly")
-         
+         server_socket.close()
          sys.exit(0)        
      
      
